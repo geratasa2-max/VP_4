@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вгадай тваринку 🐾</title>
+<style>
+* { box-sizing: border-box; }
+body {
+    margin: 0; min-height: 100vh; font-family: "Comic Sans MS", Arial, sans-serif;
+    background: linear-gradient(135deg, #fff1a8, #ffc9e5, #b9e8ff);
+    display: flex; justify-content: center; align-items: center; padding: 20px;
+}
+.game {
+    width: 100%; max-width: 650px; background: white; border-radius: 30px;
+    padding: 25px; text-align: center; box-shadow: 0 10px 30px #0002;
+}
+h1 { color: #ff7b35; font-size: 34px; margin: 5px; }
+.subtitle { color: #777; font-size: 18px; }
+.score {
+    display: inline-block; background: #fff0a6; padding: 12px 22px;
+    border-radius: 20px; font-size: 20px; font-weight: bold; margin: 15px; color: #805500;
+}
+.question {
+    background: #e7f8ff; border: 3px dashed #71c9ed; border-radius: 22px;
+    padding: 25px 12px; margin: 15px 0; font-size: 25px; font-weight: bold;
+    color: #277ba0; min-height: 100px; display: flex; align-items: center; justify-content: center;
+}
+.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px; }
+.animal {
+    border: none; border-radius: 22px; padding: 20px 8px; background: #ffe2a8;
+    cursor: pointer; font-size: 55px; transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 5px 0 #e5b85f;
+}
+.animal span { display: block; font-size: 18px; font-weight: bold; color: #634b27; margin-top: 8px; }
+.animal:hover { transform: scale(1.06); box-shadow: 0 7px 0 #e5b85f; }
+.animal:active { transform: scale(0.95); }
+.animal.correct { background: #a8f3b0; animation: jump 0.6s ease; }
+.animal.wrong { background: #ffb6b6; animation: shake 0.4s; }
+@keyframes jump { 0% { transform: scale(1); } 50% { transform: scale(1.2) rotate(5deg); } 100% { transform: scale(1); } }
+@keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.feedback { font-size: 23px; font-weight: bold; min-height: 55px; margin: 18px 0 5px; color: #ff8a28; }
+.next, .restart {
+    border: none; border-radius: 18px; padding: 15px 30px; font-size: 20px;
+    font-weight: bold; background: #ff8b47; color: white; cursor: pointer;
+    margin: 10px; box-shadow: 0 5px 0 #d9682a;
+}
+.next:hover, .restart:hover { background: #ff702d; }
+.hidden { display: none; }
+.celebrate { animation: celebrate 0.8s ease; }
+@keyframes celebrate { 0% { transform: scale(1); } 50% { transform: scale(1.08) rotate(2deg); } 100% { transform: scale(1); } }
+.footer { margin-top: 15px; color: #aaa; font-size: 14px; }
+@media (max-width: 420px) {
+    .game { padding: 18px 14px; }
+    h1 { font-size: 28px; }
+    .animal { font-size: 45px; padding: 16px 6px; }
+    .question { font-size: 21px; }
+}
+</style>
+</head>
+<body>
+<div class="game" id="game">
+    <h1>🐾 Вгадай тваринку! 🐾</h1>
+    <div class="subtitle">Весела гра для маленьких розумників!</div>
+    <div class="score">⭐ Правильних відповідей: <span id="score">0</span></div>
+    <div class="question" id="question">Хто любить їсти банани? 🍌</div>
+    <div class="cards" id="cards">
+        <button class="animal" data-animal="monkey">🐒<span>Мавпочка</span></button>
+        <button class="animal" data-animal="dog">🐶<span>Собачка</span></button>
+        <button class="animal" data-animal="rabbit">🐰<span>Зайчик</span></button>
+        <button class="animal" data-animal="cat">🐱<span>Котик</span></button>
+    </div>
+    <div class="feedback" id="feedback">Обери правильну тваринку! 💛</div>
+    <button class="next hidden" id="next">Наступне запитання ➡️</button>
+    <button class="restart hidden" id="restart">🔄 Грати ще раз</button>
+    <div class="footer">🌈 Навчайся, грай та пізнавай тварин!</div>
+</div>
+<script>
+const questions = [
+    { text: "Хто любить їсти банани? 🍌", answer: "monkey" },
+    { text: "Хто живе у будці? 🏠", answer: "dog" },
+    { text: "Хто любить їсти морквинку? 🥕", answer: "rabbit" },
+    { text: "Хто говорить «Няв-няв»? 😺", answer: "cat" },
+    { text: "Хто любить гавкати? 🦴", answer: "dog" },
+    { text: "Хто має довгі вушка? 👂", answer: "rabbit" },
+    { text: "Хто любить лазити по деревах? 🌳", answer: "monkey" },
+    { text: "Хто муркоче та ловить мишок? 🐭", answer: "cat" },
+    { text: "Хто любить гризти кісточку? 🦴", answer: "dog" },
+    { text: "Хто стрибає та має пухнастий хвостик? 🐾", answer: "rabbit" }
+];
+const praise = [
+    "Молодець! Ти справжній розумник! 🌟",
+    "Ура! Правильна відповідь! 🎉",
+    "Чудово! Так тримати! ❤️",
+    "Супер! Ти знаєш тваринок! 🥳",
+    "Браво! Ти неймовірний! ⭐"
+];
+let currentQuestion = 0;
+let score = 0;
+let answered = false;
+const questionElement = document.getElementById("question");
+const scoreElement = document.getElementById("score");
+const feedbackElement = document.getElementById("feedback");
+const nextButton = document.getElementById("next");
+const restartButton = document.getElementById("restart");
+const cards = document.querySelectorAll(".animal");
+function speak(text) {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const message = new SpeechSynthesisUtterance(text);
+    message.lang = "uk-UA"; message.rate = 0.9; message.pitch = 1.2;
+    window.speechSynthesis.speak(message);
+}
+function loadQuestion() {
+    if (currentQuestion >= questions.length) { finishGame(); return; }
+    answered = false;
+    questionElement.textContent = questions[currentQuestion].text;
+    feedbackElement.textContent = "Обери правильну тваринку! 💛";
+    nextButton.classList.add("hidden");
+    cards.forEach(card => {
+        card.disabled = false;
+        card.classList.remove("correct", "wrong");
+    });
+}
+cards.forEach(card => {
+    card.addEventListener("click", () => {
+        if (answered) return;
+        const selected = card.dataset.animal;
+        const correct = questions[currentQuestion].answer;
+        if (selected === correct) {
+            answered = true; score++;
+            scoreElement.textContent = score;
+            card.classList.add("correct");
+            const message = praise[Math.floor(Math.random() * praise.length)];
+            feedbackElement.textContent = message;
+            document.getElementById("game").classList.add("celebrate");
+            setTimeout(() => document.getElementById("game").classList.remove("celebrate"), 800);
+            speak(message);
+            cards.forEach(c => c.disabled = true);
+            nextButton.textContent = currentQuestion === questions.length - 1
+                ? "Побачити результат 🏆" : "Наступне запитання ➡️";
+            nextButton.classList.remove("hidden");
+        } else {
+            card.classList.add("wrong");
+            feedbackElement.textContent = "Спробуй ще раз! У тебе все вийде! 💪";
+            speak("Спробуй ще раз! Ти зможеш!");
+            setTimeout(() => card.classList.remove("wrong"), 500);
+        }
+    });
+});
+nextButton.addEventListener("click", () => { currentQuestion++; loadQuestion(); });
+function finishGame() {
+    questionElement.textContent = "🏆 УРА! ТИ ПРОЙШОВ УСЮ ГРУ! 🏆";
+    document.getElementById("cards").classList.add("hidden");
+    feedbackElement.innerHTML = `🎉 Твій результат: ${score} з ${questions.length}!<br>Ти справжній знавець тваринок! ❤️`;
+    nextButton.classList.add("hidden");
+    restartButton.classList.remove("hidden");
+    speak("Вітаю! Ти пройшов усю гру! Ти молодець!");
+}
+restartButton.addEventListener("click", () => {
+    currentQuestion = 0; score = 0; scoreElement.textContent = "0";
+    document.getElementById("cards").classList.remove("hidden");
+    restartButton.classList.add("hidden");
+    loadQuestion();
+    speak("Починаємо нову гру! Успіхів!");
+});
+loadQuestion();
+</script>
+</body>
+</html>
